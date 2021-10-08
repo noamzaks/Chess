@@ -1,5 +1,6 @@
 package com.noamzaks.chess.game;
 
+import com.noamzaks.chess.Board;
 import com.noamzaks.chess.R;
 
 import java.util.Map;
@@ -31,5 +32,5 @@ public abstract class Piece {
         return (white ? "White " : "Black ") + getClass().getSimpleName();
     }
 
-    public abstract boolean canMove(int fromX, int fromY, int toX, int toY);
+    public abstract boolean canMove(int fromX, int fromY, int toX, int toY, Board board);
 }

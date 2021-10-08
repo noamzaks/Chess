@@ -12,11 +12,12 @@ import android.widget.Toast;
 
 import com.noamzaks.chess.game.Piece;
 
-public class GameActivity extends AppCompatActivity implements View.OnClickListener {
+public class GameActivity extends AppCompatActivity implements View.OnClickListener, Board.OnSetListener {
     private LinearLayout root;
 
     private View selected;
     private boolean isWhitesTurn = true;
+    private Board board;
 
     private final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -30,6 +31,8 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
+        board = new Board();
+        board.onSet(this);
         root = findViewById(R.id.game_root);
 
         for (int i = 0; i < 8; i++) {
@@ -55,13 +58,13 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View view) {
-        Piece piece = (Piece) view.getTag();
+        Piece target = (Piece) view.getTag();
         if (selected == null) {
-            if (piece == null) {
+            if (target == null) {
                 return;
             }
 
-            if (piece.isWhite() != isWhitesTurn) {
+            if (target.isWhite() != isWhitesTurn) {
                 Toast.makeText(getApplicationContext(), "It's not your turn!", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -75,26 +78,31 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
 
+        try {
+            board.move(getX(selected), getY(selected), getX(view), getY(view));
+        } catch (Board.InvalidMoveException exception) {
+            Toast.makeText(getApplicationContext(), exception.getMessage(), Toast.LENGTH_SHORT).show();
+            selected = null;
+            return;
+        }
 
-
-
-        int columnIndex = ((LinearLayout) row.getParent()).indexOfChild(row);
-
-        ImageView image = (ImageView) view;
-        image.setTag(selected.getTag());
-        System.out.println(selected.getTag());
-        image.setImageResource(((Piece) selected.getTag()).getResource());
-        ((ImageView) selected).setImageResource(-1);
-        selected = null;
         isWhitesTurn = !isWhitesTurn;
-    }
-
-    private int getX(View view) {
-        return ((LinearLayout) view.getParent()).indexOfChild(view);
+        selected = null;
     }
 
     private int getY(View view) {
+        return ((LinearLayout) view.getParent()).indexOfChild(view);
+    }
+
+    private int getX(View view) {
         View parent = (View) view.getParent();
         return ((LinearLayout) parent.getParent()).indexOfChild(parent);
+    }
+
+    @Override
+    public void onSet(int x, int y, Piece old, Piece current) {
+        ImageView image = ((ImageView) ((LinearLayout) root.getChildAt(x)).getChildAt(y));
+        image.setImageResource(current == null ? -1 : current.getResource());
+        image.setTag(current);
     }
 }
