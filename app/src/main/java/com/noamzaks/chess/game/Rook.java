@@ -8,6 +8,11 @@ public class Rook extends Piece {
     }
 
     @Override
+    public String toLetter() {
+        return isWhite() ? "R" : "r";
+    }
+
+    @Override
     public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
         int dx = toX - fromX;
         int dy = toY - fromY;

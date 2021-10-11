@@ -3,6 +3,7 @@ package com.noamzaks.chess;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.os.Build;
@@ -12,14 +13,13 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.noamzaks.chess.game.Piece;
+import com.noamzaks.chess.utilities.Toast;
 
-public class GameActivity extends AppCompatActivity implements View.OnClickListener, Board.OnSetListener {
+public class GameActivity extends AppCompatActivity implements Board.OnSetListener {
     private LinearLayout root;
 
-    private View selected;
     private boolean isWhitesTurn = true;
     private Board board;
 
@@ -29,6 +29,7 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
             1
     );
 
+    @SuppressLint("ClickableViewAccessibility")
     @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,21 +48,18 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
             for (int j = 0; j < 8; j++) {
                 FrameLayout frame = new FrameLayout(this);
                 ImageView image = new ImageView(this);
-                image.setOnClickListener(this);
-                if (Board.INITIAL_BOARD[i][j] != null) {
-                    image.setImageResource(Board.INITIAL_BOARD[i][j].getResource());
+                if (Constants.INITIAL_BOARD[i][j] != null) {
+                    image.setImageResource(Constants.INITIAL_BOARD[i][j].getResource());
                 }
-                image.setTag(Board.INITIAL_BOARD[i][j]);
+                image.setTag(Constants.INITIAL_BOARD[i][j]);
 
                 int finalI = i;
                 int finalJ = j;
                 image.setOnTouchListener((view, event) -> {
                     if (((Piece) view.getTag()).isWhite() != isWhitesTurn) {
-                        Toast.makeText(this, "It's not your turn!", Toast.LENGTH_SHORT).show();
+                        Toast.show(this, "It's not your turn!");
                         return false;
                     }
-
-                    selected = null;
 
                     ClipData data = new ClipData("Chess Piece Position", new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN}, new ClipData.Item(String.valueOf(finalI)));
                     data.addItem(new ClipData.Item(String.valueOf(finalJ)));
@@ -71,6 +69,8 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
                             null,
                             0
                     );
+
+                    view.performClick();
 
                     return true;
                 });
@@ -101,42 +101,15 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    @Override
-    public void onClick(View view) {
-        Piece target = (Piece) view.getTag();
-        if (selected == null) {
-            if (target == null) {
-                return;
-            }
-
-            if (target.isWhite() != isWhitesTurn) {
-                Toast.makeText(this, "It's not your turn!", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            selected = view;
-            return;
-        }
-
-        if (view == selected) {
-            selected = null;
-            return;
-        }
-
-        move(getX(selected), getY(selected), getX(view), getY(view));
-    }
-
     private void move(int fromX, int fromY, int toX, int toY) {
         try {
             board.move(fromX, fromY, toX, toY);
         } catch (Board.InvalidMoveException exception) {
-            Toast.makeText(this, exception.getMessage(), Toast.LENGTH_SHORT).show();
-            selected = null;
+            Toast.show(this, exception.getMessage());
             return;
         }
 
         isWhitesTurn = !isWhitesTurn;
-        selected = null;
     }
 
     private int getY(View view) {

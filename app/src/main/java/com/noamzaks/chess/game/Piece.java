@@ -32,5 +32,7 @@ public abstract class Piece {
         return (white ? "White " : "Black ") + getClass().getSimpleName();
     }
 
+    public abstract String toLetter();
+
     public abstract boolean canMove(int fromX, int fromY, int toX, int toY, Board board);
 }

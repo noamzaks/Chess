@@ -8,6 +8,11 @@ public class Knight extends Piece {
     }
 
     @Override
+    public String toLetter() {
+        return isWhite() ? "N" : "n";
+    }
+
+    @Override
     public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
         int adx = Math.abs(toX - fromX);
         int ady = Math.abs(toY - fromY);

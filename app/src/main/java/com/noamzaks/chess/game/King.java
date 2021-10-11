@@ -8,6 +8,11 @@ public class King extends Piece {
     }
 
     @Override
+    public String toLetter() {
+        return isWhite() ? "K" : "k";
+    }
+
+    @Override
     public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
         int dx = toX - fromX;
         int dy = toY - fromY;

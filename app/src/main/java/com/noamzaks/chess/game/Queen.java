@@ -8,6 +8,11 @@ public class Queen extends Piece {
     }
 
     @Override
+    public String toLetter() {
+        return isWhite() ? "Q" : "q";
+    }
+
+    @Override
     public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
         return new Bishop(isWhite()).canMove(fromX, fromY, toX, toY, board) || new Rook(isWhite()).canMove(fromX, fromY, toX, toY, board);
     }
