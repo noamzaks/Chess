@@ -1,5 +1,8 @@
 package com.noamzaks.chess.game;
 
+
+import androidx.annotation.NonNull;
+
 import com.noamzaks.chess.Board;
 import com.noamzaks.chess.R;
 
@@ -16,7 +19,7 @@ public abstract class Piece {
             King.class, new int[]{R.drawable.white_king, R.drawable.black_king}
     );
 
-    private boolean white;
+    private final boolean white;
 
     protected Piece(boolean white) {
         this.white = white;
@@ -28,6 +31,8 @@ public abstract class Piece {
         return Objects.requireNonNull(RESOURCE_MAP.get(getClass()))[white ? 0 : 1];
     }
 
+    @NonNull
+    @Override
     public String toString() {
         return (white ? "White " : "Black ") + getClass().getSimpleName();
     }

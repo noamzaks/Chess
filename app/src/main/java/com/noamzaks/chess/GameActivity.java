@@ -1,12 +1,11 @@
 package com.noamzaks.chess;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.DragEvent;
 import android.view.View;
@@ -30,7 +29,6 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     );
 
     @SuppressLint("ClickableViewAccessibility")
-    @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +54,10 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                 int finalI = i;
                 int finalJ = j;
                 image.setOnTouchListener((view, event) -> {
+                    if (view.getTag() == null) {
+                        return false;
+                    }
+
                     if (((Piece) view.getTag()).isWhite() != isWhitesTurn) {
                         Toast.show(this, "It's not your turn!");
                         return false;
@@ -63,7 +65,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
 
                     ClipData data = new ClipData("Chess Piece Position", new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN}, new ClipData.Item(String.valueOf(finalI)));
                     data.addItem(new ClipData.Item(String.valueOf(finalJ)));
-                    view.startDrag(
+                    view.startDragAndDrop(
                             data,
                             new View.DragShadowBuilder(image),
                             null,
@@ -103,13 +105,20 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
 
     private void move(int fromX, int fromY, int toX, int toY) {
         try {
-            board.move(fromX, fromY, toX, toY);
+            if (board.move(fromX, fromY, toX, toY)) {
+                new AlertDialog.Builder(this).setTitle("Checkmate").setMessage((isWhitesTurn ? "White" : "Black") + " won the game!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> board = new Board()).show();
+                return;
+            }
         } catch (Board.InvalidMoveException exception) {
             Toast.show(this, exception.getMessage());
             return;
         }
 
         isWhitesTurn = !isWhitesTurn;
+
+        if (board.isChecked(isWhitesTurn)) {
+            Toast.show(this, "Check!");
+        }
     }
 
     private int getY(View view) {
