@@ -1,35 +1,28 @@
 package com.noamzaks.chess.game;
 
+import androidx.annotation.NonNull;
+
 import com.noamzaks.chess.Board;
+import com.noamzaks.chess.utilities.Point;
 
 public class Move {
-    public Class<? extends Piece> moving, captured;
-    public int fromX, fromY, toX, toY;
+    public Piece moving, captured;
+    public Point<Integer> from, to;
 
-    public Move(Class<? extends Piece> moving, int fromX, int fromY, Class<? extends Piece> captured, int toX, int toY) {
+    public Move(Piece moving, Point<Integer> from, Piece captured, Point<Integer> to) {
         this.moving = moving;
-        this.fromX = fromX;
-        this.fromY = fromY;
+        this.from = from;
         this.captured = captured;
-        this.toX = toX;
-        this.toY = toY;
+        this.to = to;
     }
 
-    public Move(int fromX, int fromY, int toX, int toY, Board board) {
-        Class<? extends Piece> moving = null, captured = null;
+    public Move(Point<Integer> from, Point<Integer> to, Board board) {
+        this(board.get(from), from, board.get(to), to);
+    }
 
-        if (board.get(fromX, fromY) != null) {
-            moving = board.get(fromX, fromY).getClass();
-        }
-        if (board.get(toX, toY) != null) {
-            captured = board.get(toX, toY).getClass();
-        }
-
-        this.moving = moving;
-        this.fromX = fromX;
-        this.fromY = fromY;
-        this.captured = captured;
-        this.toX = toX;
-        this.toY = toY;
+    @Override
+    @NonNull
+    public String toString() {
+        return "Movement of " + moving + " from " + from + " to " + to + " capturing " + captured;
     }
 }

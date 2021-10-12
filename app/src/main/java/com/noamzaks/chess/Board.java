@@ -22,7 +22,7 @@ public class Board {
         }
     }
 
-    private final Piece[][] pieces = Constants.INITIAL_BOARD;
+    private final Piece[][] pieces = new Piece[8][8];
     private boolean turn = Constants.WHITE;
     private final List<Move> history = new ArrayList<>();
     private Point<Integer> whiteKingPosition = new Point<>(7, 4);
@@ -32,13 +32,26 @@ public class Board {
     private boolean canBlackCastleKingside = true;
     private boolean canBlackCastleQueenside = true;
 
+    public boolean canCastleKingside(boolean player) {
+        return player == Constants.WHITE ? canWhiteCastleKingside : canBlackCastleKingside;
+    }
+
+    public boolean canCastleQueenside(boolean player) {
+        return player == Constants.WHITE ? canWhiteCastleQueenside : canBlackCastleQueenside;
+    }
+
     private final List<OnSetListener> listeners = new ArrayList<>();
 
     public Board() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                pieces[i][j] = Constants.INITIAL_BOARD[i][j];
+            }
+        }
     }
 
-    public Piece get(int x, int y) {
-        return pieces[x][y];
+    public Piece get(Point<Integer> position) {
+        return pieces[position.first][position.second];
     }
 
     private void set(int x, int y, Piece piece) {
@@ -50,63 +63,76 @@ public class Board {
         }
     }
 
-    public boolean move(int fromX, int fromY, int toX, int toY) throws InvalidMoveException {
-        Piece moving = pieces[fromX][fromY];
+    private void silentMove(Point<Integer> from, Point<Integer> to) {
+        history.add(new Move(from, to, this));
+        Piece moving = pieces[from.first][from.second];
+        pieces[to.first][to.second] = moving;
+        pieces[from.first][from.second] = null;
+
+        if (moving instanceof King) {
+            if (moving.isWhite()) {
+                whiteKingPosition = to;
+            } else {
+                blackKingPosition = to;
+            }
+        }
+    }
+
+    private void silentUndo() {
+        var move = getLastMove();
+        pieces[move.to.first][move.to.second] = move.captured;
+        pieces[move.from.first][move.from.second] = move.moving;
+
+        if (move.moving instanceof King) {
+            if (move.moving.isWhite()) {
+                whiteKingPosition = move.from;
+            } else {
+                blackKingPosition = move.from;
+            }
+        }
+
+        history.remove(history.size() - 1);
+    }
+
+    public boolean move(Point<Integer> from, Point<Integer> to) throws InvalidMoveException {
+        Piece moving = pieces[from.first][from.second];
 
         if (moving == null) {
             throw new InvalidMoveException("No piece selected");
         }
 
-        if (pieces[toX][toY] != null && moving.isWhite() == pieces[toX][toY].isWhite()) {
+        if (pieces[to.first][to.second] != null && moving.isWhite() == pieces[to.first][to.second].isWhite()) {
             throw new InvalidMoveException("You can't capture your own pieces");
         }
 
-        if (!moving.canMove(fromX, fromY, toX, toY, this)) {
+        if (!moving.canMove(from, to, this)) {
             throw new InvalidMoveException("A " + moving.getClass().getSimpleName().toLowerCase() + " can't move in this way");
         }
-
-        Point<Integer> originalPosition = null;
 
         if (moving instanceof King) {
             if (moving.isWhite()) {
                 canWhiteCastleKingside = false;
                 canWhiteCastleQueenside = false;
-
-                originalPosition = whiteKingPosition;
-                whiteKingPosition = new Point<>(toX, toY);
             } else {
                 canBlackCastleKingside = false;
                 canBlackCastleQueenside = false;
-
-                originalPosition = blackKingPosition;
-                blackKingPosition = new Point<>(toX, toY);
             }
         } else if (moving instanceof Rook) {
-            if (fromX == 0 && fromY == 0) {
+            if (from.first == 0 && from.second == 0) {
                 canBlackCastleQueenside = false;
-            } else if (fromX == 0 && fromY == 7) {
+            } else if (from.first == 0 && from.second == 7) {
                 canBlackCastleKingside = false;
-            } else if (fromX == 7 && fromY == 0) {
+            } else if (from.first == 7 && from.second == 0) {
                 canWhiteCastleQueenside = false;
-            } else if (fromX == 7 && fromY == 7) {
+            } else if (from.first == 7 && from.second == 7) {
                 canWhiteCastleKingside = false;
             }
         }
 
-        var originalPiece = pieces[toX][toY];
-        pieces[toX][toY] = moving;
-        pieces[fromX][fromY] = null;
-
-        if (isChecked(turn)) {
-            pieces[fromX][fromY] = pieces[toX][toY];
-            pieces[toX][toY] = originalPiece;
-            if (originalPosition != null) {
-                if (moving.isWhite()) {
-                    whiteKingPosition = originalPosition;
-                } else {
-                    blackKingPosition = originalPosition;
-                }
-            }
+        silentMove(from, to);
+        var checked = isChecked(turn);
+        silentUndo();
+        if (checked) {
             throw new InvalidMoveException("You can't end your turn checked!");
         }
 
@@ -122,28 +148,10 @@ public class Board {
                                     continue;
                                 }
 
-                                if (pieces[i][j].canMove(i, j, k, l, this) && (pieces[k][l] == null || pieces[k][l].isWhite() != pieces[i][j].isWhite())) {
-                                    if (pieces[i][j] instanceof King) {
-                                        if (pieces[i][j].isWhite()) {
-                                            whiteKingPosition = new Point<>(k, l);
-                                        } else {
-                                            blackKingPosition = new Point<>(k, l);
-                                        }
-                                    }
-
-                                    var original = pieces[k][l];
-                                    pieces[k][l] = pieces[i][j];
-                                    pieces[i][j] = null;
-                                    boolean checked = isChecked(!turn);
-                                    pieces[i][j] = pieces[k][l];
-                                    pieces[k][l] = original;
-                                    if (pieces[i][j] instanceof King) {
-                                        if (pieces[i][j].isWhite()) {
-                                            whiteKingPosition = new Point<>(i, j);
-                                        } else {
-                                            blackKingPosition = new Point<>(i, j);
-                                        }
-                                    }
+                                if (pieces[i][j].canMove(new Point<>(i, j), new Point<>(k, l), this) && (pieces[k][l] == null || pieces[k][l].isWhite() != pieces[i][j].isWhite())) {
+                                    silentMove(new Point<>(i, j), new Point<>(k, l));
+                                    checked = isChecked(!turn);
+                                    silentUndo();
                                     if (!checked) {
                                         checkmate = false;
                                         break;
@@ -156,21 +164,41 @@ public class Board {
             }
         }
 
-        history.add(new Move(fromX, fromY, toX, toY, this));
-        set(toX, toY, moving);
-        set(fromX, fromY, null);
-        turn = !turn;
-        if (checkmate) {
-            return true;
+        if (moving instanceof Pawn && !to.second.equals(from.second) && get(to) == null) {
+            set(to.first + (moving.isWhite() ? 1 : -1), to.second, null);
         }
-        return false;
+
+        if (moving instanceof King && Math.abs(to.second - from.second) == 2) {
+            var row = moving.isWhite() ? 7 : 0;
+            var kingside = to.second == 6;
+
+            if (isChecked(turn)) {
+                throw new InvalidMoveException("You cannot castle while checked!");
+            }
+
+            silentMove(from, new Point<>(row, kingside ? 5 : 3));
+            checked = isChecked(turn);
+            silentUndo();
+            if (checked) {
+                throw new InvalidMoveException("You cannot castle through threatened squares!");
+            }
+
+            set(row, kingside ? 5 : 3, new Rook(moving.isWhite()));
+            set(row, kingside ? 7 : 0, null);
+        }
+
+        history.add(new Move(from, to, this));
+        set(to.first, to.second, moving);
+        set(from.first, from.second, null);
+        turn = !turn;
+        return checkmate;
     }
 
     public boolean isChecked(boolean player) {
         if (player == Constants.WHITE) {
             for (int i = 0; i < pieces.length; i++) {
                 for (int j = 0; j < pieces[i].length; j++) {
-                    if (pieces[i][j] != null && !pieces[i][j].isWhite() && pieces[i][j].canMove(i, j, whiteKingPosition.first, whiteKingPosition.second, this)) {
+                    if (pieces[i][j] != null && !pieces[i][j].isWhite() && pieces[i][j].canMove(new Point<>(i, j), whiteKingPosition, this)) {
                         return true;
                     }
                 }
@@ -178,7 +206,7 @@ public class Board {
         } else {
             for (int i = 0; i < pieces.length; i++) {
                 for (int j = 0; j < pieces[i].length; j++) {
-                    if (pieces[i][j] != null && pieces[i][j].isWhite() && pieces[i][j].canMove(i, j, blackKingPosition.first, blackKingPosition.second, this)) {
+                    if (pieces[i][j] != null && pieces[i][j].isWhite() && pieces[i][j].canMove(new Point<>(i, j), blackKingPosition, this)) {
                         return true;
                     }
                 }
@@ -250,11 +278,11 @@ public class Board {
 
         builder.append(" ");
 
-        Move last = history.get(history.size() - 1);
-        if (last.moving == Pawn.class && last.fromX == 6 && last.toX == 4) {
-            builder.append(Constants.LETTERS[last.fromY]).append("3");
-        } else if (last.moving == Pawn.class && last.fromX == 1 && last.toX == 3) {
-            builder.append(Constants.LETTERS[last.fromY]).append("6");
+        var last = getLastMove();
+        if (last.moving instanceof Pawn && last.from.first == 6 && last.to.first == 4) {
+            builder.append(Constants.LETTERS[last.from.second]).append("3");
+        } else if (last.moving instanceof Pawn && last.from.first == 1 && last.to.first == 3) {
+            builder.append(Constants.LETTERS[last.from.second]).append("6");
         } else {
             builder.append("-");
         }
@@ -278,5 +306,17 @@ public class Board {
         builder.append(movesWithoutCapture);
 
         return builder.toString();
+    }
+
+    public boolean getTurn() {
+        return turn;
+    }
+
+    public Move getLastMove() {
+        if (history.size() == 0) {
+            return null;
+        }
+
+        return history.get(history.size() - 1);
     }
 }

@@ -1,6 +1,7 @@
 package com.noamzaks.chess.game;
 
 import com.noamzaks.chess.Board;
+import com.noamzaks.chess.utilities.Point;
 
 public class Knight extends Piece {
     public Knight(boolean white) {
@@ -13,9 +14,9 @@ public class Knight extends Piece {
     }
 
     @Override
-    public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
-        int adx = Math.abs(toX - fromX);
-        int ady = Math.abs(toY - fromY);
+    public boolean canMove(Point<Integer> from, Point<Integer> to, Board board) {
+        int adx = Math.abs(to.first - from.first);
+        int ady = Math.abs(to.second - from.second);
         return (adx == 1 || adx == 2) && (adx + ady == 3);
     }
 }

@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 
 import com.noamzaks.chess.Board;
 import com.noamzaks.chess.R;
+import com.noamzaks.chess.utilities.Point;
 
 import java.util.Map;
 import java.util.Objects;
@@ -39,5 +40,5 @@ public abstract class Piece {
 
     public abstract String toLetter();
 
-    public abstract boolean canMove(int fromX, int fromY, int toX, int toY, Board board);
+    public abstract boolean canMove(Point<Integer> from, Point<Integer> to, Board board);
 }

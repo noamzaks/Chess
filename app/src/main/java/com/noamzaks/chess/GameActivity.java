@@ -14,12 +14,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.noamzaks.chess.game.Piece;
+import com.noamzaks.chess.utilities.Point;
 import com.noamzaks.chess.utilities.Toast;
 
 public class GameActivity extends AppCompatActivity implements Board.OnSetListener {
     private LinearLayout root;
 
-    private boolean isWhitesTurn = true;
     private Board board;
 
     private final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
@@ -27,6 +27,25 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             LinearLayout.LayoutParams.MATCH_PARENT,
             1
     );
+
+    private void update() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                var image = (ImageView) ((FrameLayout)((LinearLayout)root.getChildAt(i)).getChildAt(j)).getChildAt(1);
+                var piece = board.get(new Point<>(i, j));
+                System.out.println(i);
+                System.out.println(j);
+                System.out.println(piece);
+                if (piece != null) {
+                    image.setTag(piece);
+                    image.setImageResource(piece.getResource());
+                } else {
+                    image.setTag(null);
+                    image.setImageResource(-1);
+                }
+            }
+        }
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -46,10 +65,6 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             for (int j = 0; j < 8; j++) {
                 FrameLayout frame = new FrameLayout(this);
                 ImageView image = new ImageView(this);
-                if (Constants.INITIAL_BOARD[i][j] != null) {
-                    image.setImageResource(Constants.INITIAL_BOARD[i][j].getResource());
-                }
-                image.setTag(Constants.INITIAL_BOARD[i][j]);
 
                 int finalI = i;
                 int finalJ = j;
@@ -58,7 +73,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                         return false;
                     }
 
-                    if (((Piece) view.getTag()).isWhite() != isWhitesTurn) {
+                    if (((Piece) view.getTag()).isWhite() != board.getTurn()) {
                         Toast.show(this, "It's not your turn!");
                         return false;
                     }
@@ -83,7 +98,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                             return event.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
                         case DragEvent.ACTION_DROP:
                             ClipData data = event.getClipData();
-                            move(Integer.parseInt(data.getItemAt(0).getText().toString()), Integer.parseInt(data.getItemAt(1).getText().toString()), getX(view), getY(view));
+                            move(new Point<>(Integer.parseInt(data.getItemAt(0).getText().toString()), Integer.parseInt(data.getItemAt(1).getText().toString())), new Point<>(getX(view), getY(view)));
                             return true;
                     }
                     return false;
@@ -101,12 +116,22 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
 
             root.addView(row);
         }
+
+        update();
     }
 
-    private void move(int fromX, int fromY, int toX, int toY) {
+    private void move(Point<Integer> from, Point<Integer> to) {
+        if (from.first == to.first && from.second == to.second) {
+            return;
+        }
+
         try {
-            if (board.move(fromX, fromY, toX, toY)) {
-                new AlertDialog.Builder(this).setTitle("Checkmate").setMessage((isWhitesTurn ? "White" : "Black") + " won the game!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> board = new Board()).show();
+            if (board.move(from, to)) {
+                new AlertDialog.Builder(this).setTitle("Checkmate").setMessage((!board.getTurn() ? "White" : "Black") + " won the game!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
+                    board = new Board();
+                    board.onSet(this);
+                    update();
+                }).show();
                 return;
             }
         } catch (Board.InvalidMoveException exception) {
@@ -114,9 +139,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             return;
         }
 
-        isWhitesTurn = !isWhitesTurn;
-
-        if (board.isChecked(isWhitesTurn)) {
+        if (board.isChecked(board.getTurn())) {
             Toast.show(this, "Check!");
         }
     }

@@ -1,6 +1,7 @@
 package com.noamzaks.chess.game;
 
 import com.noamzaks.chess.Board;
+import com.noamzaks.chess.utilities.Point;
 
 public class Queen extends Piece {
     public Queen(boolean white) {
@@ -13,7 +14,7 @@ public class Queen extends Piece {
     }
 
     @Override
-    public boolean canMove(int fromX, int fromY, int toX, int toY, Board board) {
-        return new Bishop(isWhite()).canMove(fromX, fromY, toX, toY, board) || new Rook(isWhite()).canMove(fromX, fromY, toX, toY, board);
+    public boolean canMove(Point<Integer> from, Point<Integer> to, Board board) {
+        return new Bishop(isWhite()).canMove(from, to, board) || new Rook(isWhite()).canMove(from, to, board);
     }
 }
