@@ -137,6 +137,7 @@ public class Board {
         }
 
         boolean checkmate = false;
+        silentMove(from, to);
         if (isChecked(!turn)) {
             checkmate = true;
             for (int i = 0; i < pieces.length && checkmate; i++) {
@@ -163,6 +164,7 @@ public class Board {
                 }
             }
         }
+        silentUndo();
 
         if (moving instanceof Pawn && !to.second.equals(from.second) && get(to) == null) {
             set(to.first + (moving.isWhite() ? 1 : -1), to.second, null);
