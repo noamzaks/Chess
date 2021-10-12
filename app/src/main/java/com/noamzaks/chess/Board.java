@@ -189,6 +189,7 @@ public class Board {
             set(row, kingside ? 7 : 0, null);
         }
 
+        silentMove(from, to);
         history.add(new Move(from, to, this));
         set(to.first, to.second, moving);
         set(from.first, from.second, null);
