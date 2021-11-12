@@ -1,9 +1,12 @@
 package com.noamzaks.chess;
 
+import com.noamzaks.chess.game.Bishop;
 import com.noamzaks.chess.game.King;
+import com.noamzaks.chess.game.Knight;
 import com.noamzaks.chess.game.Move;
 import com.noamzaks.chess.game.Pawn;
 import com.noamzaks.chess.game.Piece;
+import com.noamzaks.chess.game.Queen;
 import com.noamzaks.chess.game.Rook;
 import com.noamzaks.chess.utilities.Point;
 import com.noamzaks.chess.utilities.Toast;
@@ -16,6 +19,10 @@ public class Board {
         void onSet(int x, int y, Piece old, Piece current);
     }
 
+    public interface MoveVerifier {
+        boolean can(Move move);
+    }
+
     public static class InvalidMoveException extends Exception {
         public InvalidMoveException(String reason) {
             super(reason);
@@ -24,7 +31,7 @@ public class Board {
 
     private final Piece[][] pieces = new Piece[8][8];
     private boolean turn = Constants.WHITE;
-    private final List<Move> history = new ArrayList<>();
+    private List<Move> history = new ArrayList<>();
     private Point<Integer> whiteKingPosition = new Point<>(7, 4);
     private Point<Integer> blackKingPosition = new Point<>(0, 4);
     private boolean canWhiteCastleKingside = true;
@@ -41,13 +48,19 @@ public class Board {
     }
 
     private final List<OnSetListener> listeners = new ArrayList<>();
+    private final List<MoveVerifier> verifiers = new ArrayList<>();
 
     public Board() {
+        reset();
+    }
+
+    public void reset() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 pieces[i][j] = Constants.INITIAL_BOARD[i][j];
             }
         }
+        history = new ArrayList<>();
     }
 
     public Piece get(Point<Integer> position) {
@@ -190,10 +203,16 @@ public class Board {
         }
 
         silentMove(from, to);
-        history.add(new Move(from, to, this));
+        var move = new Move(from, to, this);
+        for (var verifier : verifiers) {
+            if (!verifier.can(move)) {
+                throw new InvalidMoveException("You aren't allowed to make this move");
+            }
+        }
+        history.add(move);
+        turn = !turn;
         set(to.first, to.second, moving);
         set(from.first, from.second, null);
-        turn = !turn;
         return checkmate;
     }
 
@@ -221,6 +240,9 @@ public class Board {
 
     public void onSet(OnSetListener listener) {
         listeners.add(listener);
+    }
+    public void addVerifier(MoveVerifier verifier) {
+        verifiers.add(verifier);
     }
 
     public String toFEN() {
@@ -282,9 +304,9 @@ public class Board {
         builder.append(" ");
 
         var last = getLastMove();
-        if (last.moving instanceof Pawn && last.from.first == 6 && last.to.first == 4) {
+        if (last != null && last.moving instanceof Pawn && last.from.first == 6 && last.to.first == 4) {
             builder.append(Constants.LETTERS[last.from.second]).append("3");
-        } else if (last.moving instanceof Pawn && last.from.first == 1 && last.to.first == 3) {
+        } else if (last != null && last.moving instanceof Pawn && last.from.first == 1 && last.to.first == 3) {
             builder.append(Constants.LETTERS[last.from.second]).append("6");
         } else {
             builder.append("-");
@@ -309,6 +331,50 @@ public class Board {
         builder.append(movesWithoutCapture);
 
         return builder.toString();
+    }
+
+    public void setFEN(String game) {
+        String[] parts = game.split(" ");
+
+        String[] rows = parts[0].split("\\/");
+        for (int i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            int letter = 0;
+            int rowIndex = 0;
+            while (letter < row.length()) {
+                char current = row.charAt(letter);
+                if (Character.isDigit(current)) {
+                    var skip = Character.digit(current, 10);
+                    for (int j = 0; j < skip; j++) {
+                        set(i, rowIndex + j, null);
+                    }
+                    rowIndex += skip;
+                } else {
+                    var white = Character.isUpperCase(current);
+                    current = Character.toLowerCase(current);
+
+                    switch (current) {
+                        case 'p': set(i, rowIndex, new Pawn(white)); break;
+                        case 'n': set(i, rowIndex, new Knight(white)); break;
+                        case 'b': set(i, rowIndex, new Bishop(white)); break;
+                        case 'r': set(i, rowIndex, new Rook(white)); break;
+                        case 'q': set(i, rowIndex, new Queen(white)); break;
+                        case 'k':
+                            set(i, rowIndex, new King(white));
+                            if (white) {
+                                whiteKingPosition = new Point<>(i, rowIndex);
+                            } else {
+                                blackKingPosition = new Point<>(i, rowIndex);
+                            }
+                            break;
+                    }
+                    rowIndex++;
+                }
+                letter++;
+            }
+        }
+
+        turn = parts[1].equals("w") ? Constants.WHITE : Constants.BLACK;
     }
 
     public boolean getTurn() {

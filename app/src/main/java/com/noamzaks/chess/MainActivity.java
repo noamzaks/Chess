@@ -2,44 +2,39 @@ package com.noamzaks.chess;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
-import android.widget.ImageView;
-import android.widget.TableLayout;
-import android.widget.TableRow;
+import android.view.View;
+import android.widget.EditText;
+
+import com.noamzaks.chess.utilities.Random;
 
 public class MainActivity extends AppCompatActivity {
-    TableLayout board;
+    private EditText gameCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        board = findViewById(R.id.board);
+        gameCode = findViewById(R.id.main_online_code);
+    }
 
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+    public void createNewOnlineGame(View v) {
+        var intent = new Intent(this, OnlineGameActivity.class);
+        intent.putExtra(OnlineGameActivity.EXTRAS_GAME_CODE, Random.generateGameCode());
+        intent.putExtra(OnlineGameActivity.EXTRAS_PLAYER, Constants.WHITE);
+        startActivity(intent);
+    }
 
-        System.out.println(board.getWidth());
+    public void joinOnlineGame(View v) {
+        var intent = new Intent(this, OnlineGameActivity.class);
+        intent.putExtra(OnlineGameActivity.EXTRAS_GAME_CODE, gameCode.getText().toString());
+        intent.putExtra(OnlineGameActivity.EXTRAS_PLAYER, Constants.BLACK);
+        startActivity(intent);
+    }
 
-        for (int i = 0; i < 8; i++) {
-            TableRow row = new TableRow(getApplicationContext());
-            row.setMinimumWidth(64 * 8);
-            row.setMinimumHeight(64);
-
-            for (int j = 0; j < 8; j++) {
-                ImageView image = new ImageView(getApplicationContext());
-                image.setImageResource(R.drawable.black_bishop);
-                image.setMinimumHeight(64);
-                image.setMinimumWidth(64);
-                image.setMaxHeight(64);
-                image.setMaxWidth(64);
-
-                row.addView(image);
-            }
-
-            board.addView(row);
-        }
+    public void createNewOfflineGame(View v) {
+        startActivity(new Intent(this, GameActivity.class));
     }
 }

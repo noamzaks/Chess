@@ -20,7 +20,7 @@ import com.noamzaks.chess.utilities.Toast;
 public class GameActivity extends AppCompatActivity implements Board.OnSetListener {
     private LinearLayout root;
 
-    private Board board;
+    protected Board board;
 
     private final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -128,8 +128,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         try {
             if (board.move(from, to)) {
                 new AlertDialog.Builder(this).setTitle("Checkmate").setMessage((!board.getTurn() ? "White" : "Black") + " won the game!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                    board = new Board();
-                    board.onSet(this);
+                    board.reset();
                     update();
                 }).show();
                 return;
@@ -158,7 +157,11 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     @Override
     public void onSet(int x, int y, Piece old, Piece current) {
         ImageView image = (ImageView) ((FrameLayout) ((LinearLayout) root.getChildAt(x)).getChildAt(y)).getChildAt(1);
-        image.setImageResource(current == null ? -1 : current.getResource());
+        if (current == null) {
+            image.setImageBitmap(null);
+        } else {
+            image.setImageResource(current.getResource());
+        }
         image.setTag(current);
     }
 }
