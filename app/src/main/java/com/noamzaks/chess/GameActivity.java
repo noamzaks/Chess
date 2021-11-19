@@ -19,6 +19,7 @@ import com.noamzaks.chess.utilities.Toast;
 
 public class GameActivity extends AppCompatActivity implements Board.OnSetListener {
     private LinearLayout root;
+    protected LinearLayout aboveBlack, belowWhite;
 
     protected Board board;
 
@@ -31,11 +32,8 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     private void update() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                var image = (ImageView) ((FrameLayout)((LinearLayout)root.getChildAt(i)).getChildAt(j)).getChildAt(1);
+                var image = (ImageView) ((FrameLayout) ((LinearLayout) root.getChildAt(i)).getChildAt(j)).getChildAt(1);
                 var piece = board.get(new Point<>(i, j));
-                System.out.println(i);
-                System.out.println(j);
-                System.out.println(piece);
                 if (piece != null) {
                     image.setTag(piece);
                     image.setImageResource(piece.getResource());
@@ -56,6 +54,8 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         board = new Board();
         board.onSet(this);
         root = findViewById(R.id.game_root);
+        aboveBlack = findViewById(R.id.game_above_black);
+        belowWhite = findViewById(R.id.game_below_white);
 
         for (int i = 0; i < 8; i++) {
             LinearLayout row = new LinearLayout(this);
@@ -105,7 +105,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                 });
 
                 ImageView background = new ImageView(this);
-                background.setBackgroundColor(((i + j) % 2 == 0) ? Colors.BACKGROUND_LIGHT : Colors.BACKGROUND_DARK);
+                background.setBackgroundColor(((i + j) % 2 == 0) ? getResources().getColor(R.color.background_light) : getResources().getColor(R.color.background_dark));
 
                 frame.addView(background);
                 frame.addView(image);

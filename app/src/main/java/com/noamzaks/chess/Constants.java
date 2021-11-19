@@ -24,4 +24,6 @@ public class Constants {
     public final static boolean BLACK = !WHITE;
 
     public final static char[] LETTERS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+
+    public final static String SHARED_PREFERENCES_NAME = "chess";
 }

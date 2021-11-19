@@ -9,9 +9,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Chess">
-<!--        <activity-->
-<!--            android:name=".GameActivity"-->
-<!--            android:exported="true" />-->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+        <!-- <activity -->
+        <!-- android:name=".GameActivity" -->
+        <!-- android:exported="true" /> -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -21,8 +24,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".GameActivity" android:exported="true"></activity>
-        <activity android:name=".OnlineGameActivity" android:exported="true"></activity>
+        <activity
+            android:name=".GameActivity"
+            android:exported="true" />
+        <activity
+            android:name=".OnlineGameActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="noamzaks.com" android:path="/chess" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
