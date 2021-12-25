@@ -9,7 +9,6 @@ import com.noamzaks.chess.game.Piece;
 import com.noamzaks.chess.game.Queen;
 import com.noamzaks.chess.game.Rook;
 import com.noamzaks.chess.utilities.Point;
-import com.noamzaks.chess.utilities.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,23 @@ public class Board {
     }
 
     public interface MoveVerifier {
-        boolean can(Move move);
+        void can(Move move) throws InvalidMoveException;
+    }
+
+    public interface OnCheckListener {
+        void onCheck(boolean player, boolean mate);
+    }
+
+    public interface OnGameOverListener {
+        void onGameOver(boolean winner, String reason);
+    }
+
+    public interface OnCaptureListener {
+        void onCapture(Point<Integer> location, Piece captured);
+    }
+
+    public interface NewBoardFactory {
+        Piece[][] createNewBoard();
     }
 
     public static class InvalidMoveException extends Exception {
@@ -29,7 +44,9 @@ public class Board {
         }
     }
 
-    private final Piece[][] pieces = new Piece[8][8];
+    public boolean isOver = false;
+
+    private Piece[][] pieces = new Piece[8][8];
     private boolean turn = Constants.WHITE;
     private List<Move> history = new ArrayList<>();
     private Point<Integer> whiteKingPosition = new Point<>(7, 4);
@@ -49,18 +66,30 @@ public class Board {
 
     private final List<OnSetListener> listeners = new ArrayList<>();
     private final List<MoveVerifier> verifiers = new ArrayList<>();
+    private final List<OnCheckListener> onCheckListeners = new ArrayList<>();
+    private final List<OnGameOverListener> onGameOverListeners = new ArrayList<>();
+    private final List<OnCaptureListener> onCaptureListeners = new ArrayList<>();
+    private NewBoardFactory newBoardFactory = new NewBoardFactory() {
+        @Override
+        public Piece[][] createNewBoard() {
+            var result = new Piece[8][8];
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    pieces[i][j] = Constants.INITIAL_BOARD[i][j];
+                }
+            }
+            return result;
+        }
+    };
 
     public Board() {
         reset();
     }
 
     public void reset() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                pieces[i][j] = Constants.INITIAL_BOARD[i][j];
-            }
-        }
+        pieces = newBoardFactory.createNewBoard();
         history = new ArrayList<>();
+        turn = Constants.WHITE;
     }
 
     public Piece get(Point<Integer> position) {
@@ -107,8 +136,9 @@ public class Board {
         history.remove(history.size() - 1);
     }
 
-    public boolean move(Point<Integer> from, Point<Integer> to) throws InvalidMoveException {
+    public void move(Point<Integer> from, Point<Integer> to) throws InvalidMoveException {
         Piece moving = pieces[from.first][from.second];
+        var current = get(to);
 
         if (moving == null) {
             throw new InvalidMoveException("No piece selected");
@@ -151,7 +181,8 @@ public class Board {
 
         boolean checkmate = false;
         silentMove(from, to);
-        if (isChecked(!turn)) {
+        var isChecking = isChecked(!turn);
+        if (isChecking) {
             checkmate = true;
             for (int i = 0; i < pieces.length && checkmate; i++) {
                 for (int j = 0; j < pieces[i].length && checkmate; j++) {
@@ -205,15 +236,33 @@ public class Board {
         silentMove(from, to);
         var move = new Move(from, to, this);
         for (var verifier : verifiers) {
-            if (!verifier.can(move)) {
-                throw new InvalidMoveException("You aren't allowed to make this move");
+            verifier.can(move);
+        }
+        if (isChecking) {
+            for (var listener : onCheckListeners) {
+                listener.onCheck(!turn, checkmate);
             }
         }
         history.add(move);
         turn = !turn;
         set(to.first, to.second, moving);
         set(from.first, from.second, null);
-        return checkmate;
+        if (current != null) {
+            for (var listener : onCaptureListeners) {
+                listener.onCapture(to, current);
+            }
+        }
+        if (checkmate) {
+            over(!turn, (turn == Constants.WHITE ? "White" : "Black") + " was checkmated");
+        }
+    }
+
+    public void set(Point<Integer> location, Piece piece) {
+        var current = get(location);
+        if (piece == null && current instanceof King) {
+            over(current.isWhite() ? Constants.BLACK : Constants.WHITE, "King destroyed");
+        }
+        set(location.first, location.second, piece);
     }
 
     public boolean isChecked(boolean player) {
@@ -238,12 +287,23 @@ public class Board {
         return false;
     }
 
-    public void onSet(OnSetListener listener) {
+    public void over(boolean player, String reason) {
+        for (var listener : onGameOverListeners) {
+            listener.onGameOver(player, reason);
+        }
+        isOver = true;
+    }
+
+    public void addSetListener(OnSetListener listener) {
         listeners.add(listener);
     }
     public void addVerifier(MoveVerifier verifier) {
         verifiers.add(verifier);
     }
+    public void addCheckListener(OnCheckListener listener) { onCheckListeners.add(listener); }
+    public void addGameOverListener(OnGameOverListener listener) { onGameOverListeners.add(listener); }
+    public void addCaptureListener(OnCaptureListener listener) { onCaptureListeners.add(listener); }
+    public void setNewBoardFactory(NewBoardFactory factory) { newBoardFactory = factory; pieces = newBoardFactory.createNewBoard(); }
 
     public String toFEN() {
         StringBuilder builder = new StringBuilder();

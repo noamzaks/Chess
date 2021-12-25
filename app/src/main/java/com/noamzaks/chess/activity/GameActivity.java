@@ -19,12 +19,14 @@ import android.widget.TextView;
 import com.noamzaks.chess.Board;
 import com.noamzaks.chess.Constants;
 import com.noamzaks.chess.R;
+import com.noamzaks.chess.game.King;
 import com.noamzaks.chess.game.Piece;
 import com.noamzaks.chess.utilities.Point;
 import com.noamzaks.chess.utilities.Toast;
 
-public class GameActivity extends AppCompatActivity implements Board.OnSetListener {
+public class GameActivity extends AppCompatActivity implements Board.OnSetListener, Board.OnGameOverListener {
     public static final String EXTRAS_LENGTH = "length";
+    public static final String EXTRAS_MODE = "mode";
 
     private LinearLayout root;
     private String theme;
@@ -63,7 +65,8 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         setContentView(R.layout.activity_game);
 
         board = new Board();
-        board.onSet(this);
+        board.addSetListener(this);
+        board.addGameOverListener(this);
         root = findViewById(R.id.game_root);
         aboveBlack = findViewById(R.id.game_above_black);
         belowWhite = findViewById(R.id.game_below_white);
@@ -137,6 +140,64 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         var extras = getIntent().getExtras();
 
         var time = extras.getInt(EXTRAS_LENGTH, 0);
+        switch (extras.getString(EXTRAS_MODE)) {
+            case "3-Check":
+                var listener = new Board.OnCheckListener() {
+                    public int whiteChecks = 0, blackChecks = 0;
+
+                    @Override
+                    public void onCheck(boolean player, boolean mate) {
+                        System.out.println(player + "," + mate);
+                        if (player == Constants.WHITE) {
+                            whiteChecks++;
+                            if (whiteChecks == 3) {
+                                board.over(Constants.BLACK, "white was checked three times");
+                            }
+                        } else {
+                            blackChecks++;
+                            if (blackChecks == 3) {
+                                board.over(Constants.WHITE, "black was checked three times");
+                            }
+                        }
+                    }
+                };
+                board.addCheckListener(listener);
+                board.addGameOverListener((__, ___) -> {
+                    listener.whiteChecks = 0;
+                    listener.blackChecks = 0;
+                });
+                break;
+            case "King of the Hill":
+                board.addSetListener((x, y, old, current) -> {
+                    if ((x == 3 || x == 4) && (y == 3 || y == 4) && current instanceof King) {
+                        board.over(current.isWhite() ? Constants.WHITE : Constants.BLACK, "Reached the center");
+                    }
+                });
+            case "Atomic":
+                board.addCaptureListener((location, piece) -> {
+                    int x = location.first, y = location.second;
+                    board.set(new Point<>(x, y), null);
+                    if (y - 1 >= 0)
+                        board.set(new Point<>(x, y - 1), null);
+                    if (y + 1 <= 7)
+                        board.set(new Point<>(x, y + 1), null);
+                    if (x + 1 <= 7 && y - 1 >= 0)
+                        board.set(new Point<>(x + 1, y - 1), null);
+                    if (x + 1 <= 7)
+                        board.set(new Point<>(x + 1, y), null);
+                    if (x + 1 <= 7 && y + 1 <= 7)
+                        board.set(new Point<>(x + 1, y + 1), null);
+                    if (x - 1 >= 0 && y - 1 >= 0)
+                        board.set(new Point<>(x - 1, y - 1), null);
+                    if (x - 1 >= 0)
+                        board.set(new Point<>(x - 1, y), null);
+                    if (x - 1 >= 0 && y + 1 <= 7)
+                        board.set(new Point<>(x - 1, y + 1), null);
+                });
+            default:
+                break;
+        }
+
         var self = this;
         whiteTimer = new CountDownTimer(time * 1000, 1000) {
             public void onTick(long millisUntilFinished) {
@@ -146,10 +207,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             public void onFinish() {
                 try {
                     if (time != 0) {
-                        new AlertDialog.Builder(self).setTitle("Game Over").setMessage("Black won the game because white ran out of time!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                            board.reset();
-                            update();
-                        }).show();
+                        board.over(Constants.BLACK, "White ran out of time");
                     }
                 } catch (WindowManager.BadTokenException __) {
                 }
@@ -163,10 +221,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             public void onFinish() {
                 if (time != 0) {
                     try {
-                        new AlertDialog.Builder(self).setTitle("Game Over").setMessage("White won the game because black ran out of time!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                            board.reset();
-                            update();
-                        }).show();
+                        board.over(Constants.WHITE, "Black ran out of time");
                     } catch (WindowManager.BadTokenException __) {
                     }
                 }
@@ -183,11 +238,8 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         }
 
         try {
-            if (board.move(from, to)) {
-                new AlertDialog.Builder(this).setTitle("Checkmate").setMessage((!board.getTurn() ? "White" : "Black") + " won the game!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                    board.reset();
-                    update();
-                }).show();
+            board.move(from, to);
+            if (board.isOver) {
                 return;
             }
         } catch (Board.InvalidMoveException exception) {
@@ -210,10 +262,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
 
                     public void onFinish() {
                         try {
-                            new AlertDialog.Builder(self).setTitle("Game Over").setMessage("White won the game because black ran out of time!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                                board.reset();
-                                update();
-                            }).show();
+                            board.over(Constants.WHITE, "Black ran out of time");
                         } catch (WindowManager.BadTokenException __) {
                         }
                     }
@@ -230,10 +279,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
 
                     public void onFinish() {
                         try {
-                            new AlertDialog.Builder(self).setTitle("Game Over").setMessage("Black won the game because white ran out of time!").setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
-                                board.reset();
-                                update();
-                            }).show();
+                            board.over(Constants.BLACK, "White ran out of time");
                         } catch (WindowManager.BadTokenException __) {
                         }
                     }
@@ -262,5 +308,13 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             image.setImageResource(current.getResource(theme));
         }
         image.setTag(current);
+    }
+
+    @Override
+    public void onGameOver(boolean winner, String reason) {
+        new AlertDialog.Builder(this).setTitle((winner == Constants.WHITE ? "White" : "Black") + " won the game!").setMessage(reason).setCancelable(false).setPositiveButton("Reset", (__, ___) -> {
+            board.reset();
+            update();
+        }).show();
     }
 }

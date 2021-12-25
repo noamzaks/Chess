@@ -39,16 +39,17 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        topBar = findViewById(R.id.game_top_bar);
-
         var extras = getIntent().getExtras();
 
         gameCode = extras.getString(EXTRAS_GAME_CODE);
+        document = FirebaseFirestore.getInstance().document("/games/" + gameCode);
         player = extras.getBoolean(EXTRAS_PLAYER);
         if (gameCode == null) {
             gameCode = getIntent().getData().getEncodedQuery().substring("game=".length());
             player = Constants.BLACK;
         }
+
+        topBar = findViewById(R.id.game_top_bar);
 
         if (player == Constants.WHITE) {
             var button = new Button(this);
@@ -74,8 +75,6 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
         blackName.setTextColor(getResources().getColor(R.color.black));
         aboveBlack.addView(blackName);
 
-        document = FirebaseFirestore.getInstance().document("/games/" + gameCode);
-
         document.addSnapshotListener((snapshot, __) -> {
             var data = snapshot.getData();
             if (data != null) {
@@ -98,6 +97,8 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
                 Map.of(
                         "Game",
                         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                        "Mode",
+                        extras.getString(EXTRAS_MODE),
                         player ? "White" : "Black",
                         getSharedPreferences(Constants.SHARED_PREFERENCES_NAME, MODE_PRIVATE).getString("name", "Anonymous")
                 ),
@@ -131,7 +132,9 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
     }
 
     @Override
-    public boolean can(Move move) {
-        return board.getTurn() == player;
+    public void can(Move move) throws Board.InvalidMoveException {
+        if (board.getTurn() != player) {
+            throw new Board.InvalidMoveException("You're not the " + (board.getTurn() == Constants.WHITE ? "white" : "black") + " player");
+        }
     }
 }
