@@ -24,6 +24,9 @@ import com.noamzaks.chess.game.Piece;
 import com.noamzaks.chess.utilities.Point;
 import com.noamzaks.chess.utilities.Toast;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 public class GameActivity extends AppCompatActivity implements Board.OnSetListener, Board.OnGameOverListener {
     public static final String EXTRAS_LENGTH = "length";
     public static final String EXTRAS_MODE = "mode";
@@ -150,12 +153,12 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                         if (player == Constants.WHITE) {
                             whiteChecks++;
                             if (whiteChecks == 3) {
-                                board.over(Constants.BLACK, "white was checked three times");
+                                board.over(Constants.BLACK, "White was checked three times");
                             }
                         } else {
                             blackChecks++;
                             if (blackChecks == 3) {
-                                board.over(Constants.WHITE, "black was checked three times");
+                                board.over(Constants.WHITE, "Black was checked three times");
                             }
                         }
                     }
@@ -192,6 +195,23 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                         board.set(new Point<>(x - 1, y), null);
                     if (x - 1 >= 0 && y + 1 <= 7)
                         board.set(new Point<>(x - 1, y + 1), null);
+                });
+            case "Chess 960":
+                board.setNewBoardFactory(() -> {
+                    var result = new Piece[8][8];
+                    for (int i = 0; i < 8; i++) {
+                        var row = new Piece[8];
+                        for (int j = 0; j < 8; j++) {
+                            row[j] = Constants.INITIAL_BOARD[i][j];
+                        }
+                        if (i == 0 || i == 7) {
+                            Collections.shuffle(Arrays.asList(row));
+                        }
+                        for (int j = 0; j < 8; j++) {
+                            result[i][j] = row[j];
+                        }
+                    }
+                    return result;
                 });
             default:
                 break;
