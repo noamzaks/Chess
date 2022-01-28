@@ -38,10 +38,11 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     private String theme;
     protected LinearLayout aboveBlack, belowWhite;
     private TextView whiteTimerText, blackTimerText;
-    private CountDownTimer whiteTimer, blackTimer;
     private Button showAnalysis;
 
     protected Board board;
+    protected long whiteTime, blackTime;
+    protected CountDownTimer whiteTimer, blackTimer;
 
     private final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -147,7 +148,31 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         var extras = getIntent().getExtras();
 
         var time = extras.getInt(EXTRAS_LENGTH, 0);
-        switch (extras.getString(EXTRAS_MODE)) {
+        if (extras.containsKey(EXTRAS_MODE)) {
+            setGameMode(extras.getString(EXTRAS_MODE));
+        }
+
+        update();
+        setWhiteTime(time * 1000);
+        setBlackTime(time * 1000);
+        whiteTime = time * 1000;
+        blackTime = time * 1000;
+
+        if (time == 0) {
+            whiteTimerText.setVisibility(View.GONE);
+            blackTimerText.setVisibility(View.GONE);
+        }
+
+        whiteTimerText.setText("" + time);
+        blackTimerText.setText("" + time);
+
+        showAnalysis.setOnClickListener((v) -> {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.lichess.org/analysis/" + board.toFEN())));
+        });
+    }
+
+    protected void setGameMode(String mode) {
+        switch (mode) {
             case "3-Check":
                 var listener = new Board.OnCheckListener() {
                     public int whiteChecks = 0, blackChecks = 0;
@@ -218,15 +243,23 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                     }
                     return result;
                 });
+                board.reset();
             default:
                 break;
         }
+    }
 
-        update();
-
-        var self = this;
-        whiteTimer = new CountDownTimer(time * 1000, 1000) {
+    protected void setWhiteTime(long time) {
+        if (whiteTimer != null) {
+            whiteTimer.cancel();
+        }
+        if (time != 0) {
+            whiteTimerText.setVisibility(View.VISIBLE);
+            blackTimerText.setVisibility(View.VISIBLE);
+        }
+        whiteTimer = new CountDownTimer(time, 1000) {
             public void onTick(long millisUntilFinished) {
+                whiteTime = millisUntilFinished;
                 whiteTimerText.setText("" + millisUntilFinished / 1000);
             }
 
@@ -238,9 +271,16 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                 } catch (WindowManager.BadTokenException __) {
                 }
             }
-        }.start();
-        blackTimer = new CountDownTimer(time * 1000, 1000) {
+        };
+    }
+
+    protected void setBlackTime(long time) {
+        if (blackTimer != null) {
+            blackTimer.cancel();
+        }
+        blackTimer = new CountDownTimer(time, 1000) {
             public void onTick(long millisUntilFinished) {
+                blackTime = millisUntilFinished;
                 blackTimerText.setText("" + millisUntilFinished / 1000);
             }
 
@@ -253,18 +293,6 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                 }
             }
         };
-
-        if (time == 0) {
-            whiteTimerText.setVisibility(View.GONE);
-            blackTimerText.setVisibility(View.GONE);
-        }
-
-        whiteTimerText.setText("" + time);
-        blackTimerText.setText("" + time);
-
-        showAnalysis.setOnClickListener((v) -> {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.lichess.org/analysis/" + board.toFEN())));
-        });
     }
 
     private void move(Point<Integer> from, Point<Integer> to) {
@@ -282,44 +310,15 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             return;
         }
 
-        var self = this;
         if (board.isChecked(board.getTurn())) {
             Toast.show(this, "Check!");
         }
         if (board.getTurn() == Constants.WHITE) {
+            setBlackTime(Integer.parseInt(blackTimerText.getText().toString()) * 1000);
             whiteTimer.start();
-            blackTimer.cancel();
-            if (!blackTimerText.getText().toString().equals("0")) {
-                blackTimer = new CountDownTimer(Integer.parseInt(blackTimerText.getText().toString()) * 1000, 1000) {
-                    public void onTick(long millisUntilFinished) {
-                        blackTimerText.setText("" + millisUntilFinished / 1000);
-                    }
-
-                    public void onFinish() {
-                        try {
-                            board.over(Constants.WHITE, "Black ran out of time");
-                        } catch (WindowManager.BadTokenException __) {
-                        }
-                    }
-                };
-            }
         } else {
+            setWhiteTime(Integer.parseInt(whiteTimerText.getText().toString()) * 1000);
             blackTimer.start();
-            whiteTimer.cancel();
-            if (!whiteTimerText.getText().toString().equals("0")) {
-                whiteTimer = new CountDownTimer(Integer.parseInt(whiteTimerText.getText().toString()) * 1000, 1000) {
-                    public void onTick(long millisUntilFinished) {
-                        whiteTimerText.setText("" + millisUntilFinished / 1000);
-                    }
-
-                    public void onFinish() {
-                        try {
-                            board.over(Constants.BLACK, "White ran out of time");
-                        } catch (WindowManager.BadTokenException __) {
-                        }
-                    }
-                };
-            }
         }
     }
 

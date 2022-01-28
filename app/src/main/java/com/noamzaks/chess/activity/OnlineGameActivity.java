@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -29,14 +28,15 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
 
     private static final int TEXT_LARGE = 24;
     private static final int TEXT_SMALL = 18;
-    
-    private LinearLayout topBar;
+
+    private LinearLayout topBar, bottomBar;
 
     private DocumentReference document;
     private String gameCode;
     private boolean player;
     private boolean updating = false;
     private TextView blackName, whiteName;
+    private boolean firstUpdate = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +53,12 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
         }
 
         topBar = findViewById(R.id.game_top_bar);
+        bottomBar = findViewById(R.id.game_bottom_bar);
 
         if (player == Constants.WHITE) {
             var button = new Button(this);
+            whiteTimer.cancel();
+
             button.setText("Invite Opponent");
             button.setOnClickListener((v) -> {
                 var intent = new Intent();
@@ -66,6 +69,10 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
             });
             topBar.addView(button);
         }
+
+        var codeLabel = new TextView(this);
+        codeLabel.setText("Game #" + gameCode);
+        bottomBar.addView(codeLabel);
 
         whiteName = new TextView(this);
         whiteName.setTextSize(TEXT_LARGE);
@@ -80,15 +87,27 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
 
         document.addSnapshotListener((snapshot, __) -> {
             var data = snapshot.getData();
+
+            if (firstUpdate) {
+                setGameMode((String) data.get("Mode"));
+                firstUpdate = false;
+            }
+
             if (data != null) {
                 updating = true;
                 board.setFEN((String) data.get("Game"));
                 whiteName.setText((String) data.getOrDefault("White", ""));
                 blackName.setText((String) data.getOrDefault("Black", ""));
+
+
+                setWhiteTime((Long) data.getOrDefault("White Time", 0l));
+                setBlackTime((Long) data.getOrDefault("Black Time", 0l));
                 if (board.getTurn() == Constants.WHITE) {
+                    whiteTimer.start();
                     animateText(whiteName, TEXT_SMALL, TEXT_LARGE, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
                     animateText(blackName, TEXT_LARGE, TEXT_SMALL, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
                 } else {
+                    blackTimer.start();
                     animateText(blackName, TEXT_SMALL, TEXT_LARGE, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
                     animateText(whiteName, TEXT_LARGE, TEXT_SMALL, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
                 }
@@ -130,7 +149,7 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
     public void onSet(int x, int y, Piece old, Piece current) {
         super.onSet(x, y, old, current);
         if (!updating) {
-            document.set(Map.of("Game", board.toFEN()), SetOptions.merge());
+            document.set(Map.of("Game", board.toFEN(), "White Time", whiteTime, "Black Time", blackTime), SetOptions.merge());
         }
     }
 
