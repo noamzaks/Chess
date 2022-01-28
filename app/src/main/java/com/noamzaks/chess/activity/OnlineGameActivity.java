@@ -27,6 +27,9 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
     public static final String EXTRAS_GAME_CODE = "game_code";
     public static final String EXTRAS_PLAYER = "player";
 
+    private static final int TEXT_LARGE = 24;
+    private static final int TEXT_SMALL = 18;
+    
     private LinearLayout topBar;
 
     private DocumentReference document;
@@ -65,12 +68,12 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
         }
 
         whiteName = new TextView(this);
-        whiteName.setTextSize(28);
+        whiteName.setTextSize(TEXT_LARGE);
         whiteName.setTypeface(Typeface.DEFAULT_BOLD);
         whiteName.setTextColor(getResources().getColor(R.color.black));
         belowWhite.addView(whiteName);
         blackName = new TextView(this);
-        blackName.setTextSize(20);
+        blackName.setTextSize(TEXT_SMALL);
         blackName.setTypeface(Typeface.DEFAULT_BOLD);
         blackName.setTextColor(getResources().getColor(R.color.black));
         aboveBlack.addView(blackName);
@@ -83,11 +86,11 @@ public class OnlineGameActivity extends GameActivity implements Board.MoveVerifi
                 whiteName.setText((String) data.getOrDefault("White", ""));
                 blackName.setText((String) data.getOrDefault("Black", ""));
                 if (board.getTurn() == Constants.WHITE) {
-                    animateText(whiteName, 20, 28, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
-                    animateText(blackName, 28, 20, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
+                    animateText(whiteName, TEXT_SMALL, TEXT_LARGE, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
+                    animateText(blackName, TEXT_LARGE, TEXT_SMALL, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
                 } else {
-                    animateText(blackName, 20, 28, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
-                    animateText(whiteName, 28, 20, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
+                    animateText(blackName, TEXT_SMALL, TEXT_LARGE, Color.valueOf(ContextCompat.getColor(this, R.color.black)), Color.valueOf(ContextCompat.getColor(this, R.color.yellow)));
+                    animateText(whiteName, TEXT_LARGE, TEXT_SMALL, Color.valueOf(ContextCompat.getColor(this, R.color.yellow)), Color.valueOf(ContextCompat.getColor(this, R.color.black)));
                 }
                 updating = false;
             }

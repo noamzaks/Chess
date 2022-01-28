@@ -6,11 +6,14 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.DragEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -36,6 +39,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     protected LinearLayout aboveBlack, belowWhite;
     private TextView whiteTimerText, blackTimerText;
     private CountDownTimer whiteTimer, blackTimer;
+    private Button showAnalysis;
 
     protected Board board;
 
@@ -75,6 +79,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
         belowWhite = findViewById(R.id.game_below_white);
         whiteTimerText = findViewById(R.id.game_white_timer);
         blackTimerText = findViewById(R.id.game_black_timer);
+        showAnalysis = findViewById(R.id.game_show_analysis);
 
         theme = getSharedPreferences(Constants.SHARED_PREFERENCES_NAME, MODE_PRIVATE).getString("theme", "Alpha");
 
@@ -249,8 +254,17 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             }
         };
 
+        if (time == 0) {
+            whiteTimerText.setVisibility(View.GONE);
+            blackTimerText.setVisibility(View.GONE);
+        }
+
         whiteTimerText.setText("" + time);
         blackTimerText.setText("" + time);
+
+        showAnalysis.setOnClickListener((v) -> {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.lichess.org/analysis/" + board.toFEN())));
+        });
     }
 
     private void move(Point<Integer> from, Point<Integer> to) {
