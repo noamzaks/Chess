@@ -52,7 +52,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
                     image.setImageResource(piece.getResource(theme));
                 } else {
                     image.setTag(null);
-                    image.setImageResource(-1);
+                    image.setImageBitmap(null);
                 }
             }
         }
@@ -135,7 +135,6 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             root.addView(row);
         }
 
-        update();
 
         var extras = getIntent().getExtras();
 
@@ -197,6 +196,8 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
             default:
                 break;
         }
+
+        update();
 
         var self = this;
         whiteTimer = new CountDownTimer(time * 1000, 1000) {
