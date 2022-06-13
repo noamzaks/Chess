@@ -44,7 +44,7 @@ public class GameActivity extends AppCompatActivity implements Board.OnSetListen
     protected long whiteTime, blackTime;
     protected CountDownTimer whiteTimer, blackTimer;
 
-    private final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
+    private static final LinearLayout.LayoutParams EQUAL = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.MATCH_PARENT,
             1

@@ -4,6 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,6 +49,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void createNewOnlineGame(View v) {
+        if (!verifyBattery()) {
+            Toast.show(this, "You can't play online games without sufficient battery");
+            return;
+        }
+
         var intent = new Intent(this, OnlineGameActivity.class);
         intent.putExtra(OnlineGameActivity.EXTRAS_GAME_CODE, Random.generateGameCode());
         intent.putExtra(OnlineGameActivity.EXTRAS_PLAYER, Constants.WHITE);
@@ -56,6 +63,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void joinOnlineGame(View v) throws InterruptedException {
+        if (!verifyBattery()) {
+            Toast.show(this, "You can't play online games without sufficient battery");
+            return;
+        }
+
         var game = gameCode.getText().toString();
         if (game.isEmpty()) {
             Toast.show(this, "Please enter the game code before joining");
@@ -71,6 +83,12 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra(GameActivity.EXTRAS_MODE, result.getString("Mode"));
             startActivity(intent);
         });
+    }
+
+    private boolean verifyBattery() {
+        BatteryManager bm = (BatteryManager) getApplicationContext().getSystemService(BATTERY_SERVICE);
+        int percentage = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        return percentage > 20 || bm.isCharging();
     }
 
     public void createNewOfflineGame(View v) {

@@ -152,6 +152,7 @@ public class Board {
             throw new InvalidMoveException("A " + moving.getClass().getSimpleName().toLowerCase() + " can't move in this way");
         }
 
+        // Update castling options
         if (moving instanceof King) {
             if (moving.isWhite()) {
                 canWhiteCastleKingside = false;
@@ -184,6 +185,8 @@ public class Board {
         var isChecking = isChecked(!turn);
         if (isChecking) {
             checkmate = true;
+            // Check if some piece move by the checked player can lead to him not being checked
+            // If no move applies, it's a checkmate
             for (int i = 0; i < pieces.length && checkmate; i++) {
                 for (int j = 0; j < pieces[i].length && checkmate; j++) {
                     if (pieces[i][j] != null && pieces[i][j].isWhite() == (!turn == Constants.WHITE)) {
@@ -210,10 +213,13 @@ public class Board {
         }
         silentUndo();
 
+        // En Passant
         if (moving instanceof Pawn && !to.second.equals(from.second) && get(to) == null) {
             set(to.first + (moving.isWhite() ? 1 : -1), to.second, null);
         }
 
+        // Check if castling is legal (doesn't go through threatened squares and not under check)
+        // and update rook position
         if (moving instanceof King && Math.abs(to.second - from.second) == 2) {
             var row = moving.isWhite() ? 7 : 0;
             var kingside = to.second == 6;
@@ -233,11 +239,13 @@ public class Board {
             set(row, kingside ? 7 : 0, null);
         }
 
+        // Verify the move using other verifiers, e.g. the online game move verifier
         silentMove(from, to);
         var move = new Move(from, to, this);
         for (var verifier : verifiers) {
             verifier.can(move);
         }
+
         if (isChecking) {
             for (var listener : onCheckListeners) {
                 listener.onCheck(!turn, checkmate);
